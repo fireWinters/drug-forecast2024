@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from tqdm import tqdm
-# import xgboost
+import xgboost
 from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
 
@@ -32,8 +32,9 @@ def get_all_dataframes():
 
             # 遍历每个sheet
             for sheet_name, sheet_data in sheets_dict.items():
-                # 增加一列日期，值为sheet_name
-                date_str = f'2024-{sheet_name.replace(".", "-")}'  # 将点号替换为横杠，构造日期字符串
+                # 增加一列日期，值为sheet_name和文件名的组合
+                year_name=filename.split('.')[0]
+                date_str = f'{year_name}-{sheet_name.replace(".", "-")}'  # 将点号替换为横杠，构造日期字符串
                 sheet_data['日期'] = datetime.strptime(date_str, '%Y-%m-%d').date()
                 # 添加到all_dataframes列表中
                 all_dataframes.append(sheet_data)
@@ -42,6 +43,9 @@ def get_all_dataframes():
     final_dataframe = pd.concat(all_dataframes, ignore_index=True)
 
     final_dataframe = final_dataframe.drop(['入库单位', '基本单位'], axis=1)
+    # 输出处理后的数据为CSV格式文件
+    # final_dataframe.to_csv('final_dataframe.csv', index=False)
+
     return final_dataframe
 
 # 这个函数用于数据清洗，剔除前九十天没有减少数量的数据。
@@ -92,19 +96,45 @@ def data_process(df, day_lst):
 
     return df
 
-# Todo 药品类别
+# Todo 药品类别,在数据中增加一列：药品分类代码，药品名称两文件相同的，药品分类代码用同一个代码
+def drug_category(data,fileB):
+    # 读取A文件和B文件
+    df_A = fileB
+    # 关键药品名称列
+    df_B=data
+    df_B['药品名称'] = data['药品名称'].str.replace(r'\(.*\)', '')  # 去掉括号及括号内的内容
+    # 将文件中药品名称列和药品分类代码列提取出来，构建字典
+    mapping_dict = dict(zip(df_A['药品名称'].astype(str), df_A['药品分类代码']))
+    # 定义一个函数，根据药品名称在字典中查找对应的药品分类代码，如果药品名称中包含字典中的药品名称，则返回对应的药品分类代码，否则返回空字符串
+    def get_category(name):
+
+        for key in mapping_dict.keys():
+            if key in name:
+                return mapping_dict[key]
+        return ''
+
+    # 在Data中新增一列，根据药品名称列查找对应的药品分类代码
+    data['药品分类代码'] = data['药品名称'].apply(get_category)
+
+    # 将处理后的B文件保存为新csv文件
+    data.to_csv('B_with_category_new.csv', index=False)
+    return data
+
 
 
 # 首先指定了数据文件夹路径，然后调用get_all_dataframes函数获取所有数据，并进行数据处理和特征工程。接着使用XGBoost模型训练数据，并计算模型的均方误差（MSE）和决定系数（R^2）。最后绘制了真实值和预测值的散点图。
 if __name__ == '__main__':
-    current_directory = r'C:\Users\Zz\Desktop\project\callusTang'
-    data_folder_path = os.path.join(current_directory, '2020原始数据')
+    current_directory = r'/Users/callustang/tangCode/shantouCode/drug-forecast2024'
+    data_folder_path = os.path.join(current_directory, 'realData')
 
     df = get_all_dataframes()
 
     data = data_process(df, [1, 3, 7, 14, 30, 60, 90])
     data = data_cleaning(data)
     data = label_process(data)
+    # 读取药品分类代码文件
+    fileB = pd.read_csv('./ClassificationOfWesternMedicineFullNew.csv')
+    data = drug_category(data,fileB)
 
     data = data[~data['y_7'].isna()]  # 排除y的nan值
 
@@ -112,14 +142,21 @@ if __name__ == '__main__':
                  'de_sum_7', 'de_mean_7', 'de_max_7', 'de_min_7', 'de_sum_14', 'de_mean_14', 'de_max_14', 'de_min_14',
                  'de_sum_30', 'de_mean_30', 'de_max_30', 'de_min_30', 'de_sum_60', 'de_mean_60', 'de_max_60', 'de_min_60',
                  'de_sum_90', 'de_mean_90', 'de_max_90', 'de_min_90',]], data['y_7']
+    # 导出处理后的数据为CSV文件
+    # data.to_csv('label_data.csv', index=False)
+    # 导出带有药品分类代码的数据为CSV文件
+    data.to_csv('label_data_with_category.csv', index=False)
+    # y_7数据大于10000的，剔除
+    # data = data[data['y_7'] < 10000]    
+    # data.to_csv('label_data_lessthan10000.csv', index=False)
+    # xgb_reg = xgboost.XGBRegressor()
+    # xgb_reg.fit(X, y)
+    # y_pred = xgb_reg.predict(X)
 
-    xgb_reg = xgboost.XGBRegressor()
-    xgb_reg.fit(X, y)
-    y_pred = xgb_reg.predict(X)
+    # mse = mean_squared_error(y, y_pred)
+    # r2 = r2_score(y, y_pred)
+    # print(f'mes: {mse}, r2: {r2}')
 
-    mse = mean_squared_error(y, y_pred)
-    r2 = r2_score(y, y_pred)
-    print(f'mes: {mse}, r2: {r2}')
-
-    scatter_plot_with_diagonal(y, y_pred)
+    # scatter_plot_with_diagonal(y, y_pred)
+    # mes: 1098696.5627478997, r2: 0.80858310294179
 
