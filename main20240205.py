@@ -98,31 +98,46 @@ def data_process(df, day_lst):
 # Todo 药品类别
 
 
+# 定义一个函数，用于调优XGBoost模型的超参数
 def xgboost_cv_func(data, target, pbounds):
+    
+    # 定义内部函数，用于进行XGBoost模型的交叉验证
     def xgboost_crossval(max_depth, n_estimators, gamma, min_child_weight, subsample, colsample_bytree):
+        # 将传入的超参数转换为字典形式
         params = {'max_depth': int(max_depth),
                   'n_estimators': int(n_estimators),
                   'gamma': gamma,
                   'min_child_weight': min_child_weight,
                   'subsample': subsample,
                   'colsample_bytree': colsample_bytree,
-                #   'tree_method': 'gpu_hist'
+                #   'tree_method': 'gpu_hist'  # 可选：使用GPU加速训练
                   }
+        
+        # 构建XGBoost回归模型
         model = xgb.XGBRegressor(**params)
+        
+        # 进行5折交叉验证，使用负均方误差作为评估指标，返回平均得分
         return cross_val_score(model, data, target, cv=5, scoring='neg_mean_squared_error').mean()
 
+    # 使用贝叶斯优化器，传入交叉验证函数和超参数空间
     optimizer = BayesianOptimization(
         f=xgboost_crossval,
         pbounds=pbounds)
 
+    # 最大化贝叶斯优化器，进行超参数优化
     optimizer.maximize(init_points=5, n_iter=50)
+    
+    # 获取优化后的最佳超参数配置
     best_params = optimizer.max
     best_params = best_params['params']
+    
+    # 设置最佳超参数的'tree_method'为'gpu_hist'，并将'max_depth'和'n_estimators'转换为整数类型
     best_params['tree_method'] = 'gpu_hist'
     best_params['max_depth'] = int(best_params['max_depth'])
     best_params['n_estimators'] = int(best_params['n_estimators'])
+    
+    # 返回最佳的超参数配置
     return best_params
-
 
 if __name__ == '__main__':
     current_directory = r'/Users/callustang/tangCode/shantouCode/drug-forecast2024'
