@@ -56,8 +56,15 @@ def get_all_dataframes():
             # 遍历每个sheet
             for sheet_name, sheet_data in sheets_dict.items():
                 # 增加一列日期，值为sheet_name和文件名的组合
-                year_name=filename.split('.')[0]
-                date_str = f'{year_name}-{sheet_name.replace(".", "-")}'  # 将点号替换为横杠，构造日期字符串
+                # 如果sheet_name是XXXX.X.XX格式，就用sheet_name，否则用文件名
+                if sheet_name.count('.') == 2:
+                    # 把sheet_name中的点号替换为横杠
+                    date_str = sheet_name.replace(".", "-")
+                    # date_str = sheet_name
+                else:
+                    date_str = filename.split('.')[0] + '-' + sheet_name.replace(".", "-")
+                # year_name=filename.split('.')[0]
+                # date_str = f'{year_name}-{sheet_name.replace(".", "-")}'  # 将点号替换为横杠，构造日期字符串
                 sheet_data['日期'] = datetime.strptime(date_str, '%Y-%m-%d').date()
                 # 添加到all_dataframes列表中
                 all_dataframes.append(sheet_data)
@@ -67,7 +74,7 @@ def get_all_dataframes():
 
     final_dataframe = final_dataframe.drop(['入库单位', '基本单位'], axis=1)
     # 输出处理后的数据为CSV格式文件
-    # final_dataframe.to_csv('final_dataframe.csv', index=False)
+    final_dataframe.to_csv('final_dataframe20240227.csv', index=False)
 
     return final_dataframe
 
@@ -140,9 +147,34 @@ def drug_category(data,fileB):
     data['药品分类代码'] = data['药品名称'].apply(get_category)
 
     # 将处理后的B文件保存为新csv文件
-    data.to_csv('B_with_category_new.csv', index=False)
+    data.to_csv('drug_with_category_new20240227.csv', index=False)
     return data
+# 依据药品分类代码，对数据做拆分，药品分类代码没有的数据剔除，相同的全部返回
+def drug_category_split(data,category_code):
+    df=data
+    df = df[df['药品分类代码'] == category_code]
+    return df
 
+
+# 使用GridSearchCV来寻找最佳参数
+from sklearn.model_selection import GridSearchCV
+# 定义一个函数，用于训练XGBoost模型，并返回最佳参数
+def train_xgboost_model(X, y):
+    # 定义参数范围
+    param_grid = {
+        'colsample_bytree': [0.3, 0.7, 0.9],
+        'learning_rate': [0.01, 0.1, 0.2],
+        'max_depth': [3, 5, 8],
+        'alpha': [10, 15, 20],
+        'n_estimators': [10, 100, 200, 300, 400, 500]
+    }
+    # 初始化XGBRegressor
+    xgb_reg = xgboost.XGBRegressor()
+    # 使用GridSearchCV来寻找最佳参数
+    grid_search = GridSearchCV(xgb_reg, param_grid, cv=5, scoring='neg_mean_squared_error', return_train_score=True)
+    grid_search.fit(X, y)
+    # 返回最佳参数
+    return grid_search.best_params_
 
 
 # 首先指定了数据文件夹路径，然后调用get_all_dataframes函数获取所有数据，并进行数据处理和特征工程。接着使用XGBoost模型训练数据，并计算模型的均方误差（MSE）和决定系数（R^2）。最后绘制了真实值和预测值的散点图。
@@ -166,12 +198,19 @@ if __name__ == '__main__':
                  'de_sum_7', 'de_mean_7', 'de_max_7', 'de_min_7', 'de_sum_14', 'de_mean_14', 'de_max_14', 'de_min_14',
                  'de_sum_30', 'de_mean_30', 'de_max_30', 'de_min_30', 'de_sum_60', 'de_mean_60', 'de_max_60', 'de_min_60',
                  'de_sum_90', 'de_mean_90', 'de_max_90', 'de_min_90',]], data['y_7']
+    category_data=drug_category_split(data,'XJ01CA')
     # 导出处理后的数据为CSV文件
-    # data.to_csv('label_data.csv', index=False)
+    category_data.to_csv('./label_data_XJ01CA.csv', index=False)
+    # print(category_data)
+    
+    
+    
+    # 导出处理后的数据为CSV文件
+    data.to_csv('label_data20240227.csv', index=False)
     # 导出带有药品分类代码的数据为CSV文件
-    # data.to_csv('label_data_with_category.csv', index=False)
+    data.to_csv('label_data_with_category20240227.csv', index=False)
       
-    # data.to_csv('label_data_lessthan10000.csv', index=False)
+    data.to_csv('label_data_lessthan10000_20240227.csv', index=False)
     # xgb_reg = xgboost.XGBRegressor()
     # xgb_reg.fit(X, y)
     # y_pred = xgb_reg.predict(X)
@@ -191,8 +230,11 @@ if __name__ == '__main__':
                     # max_depth = 5, alpha = 10, n_estimators = 10)
     # model=xgboost.XGBRegressor(objective ='reg:squarederror', colsample_bytree = 0.9, learning_rate = 0.1,
     #                 max_depth = 5, alpha = 10, n_estimators = 10)
-    model=xgboost.XGBRegressor()
+    # model=xgboost.XGBRegressor(objective ='reg:squarederror', colsample_bytree = 1, learning_rate = 0.1,max_depth = 8, alpha = 10, n_estimators = 483)
+    # RMSE: 334.300475 MSE: 111756.807868 R^2: 0.793503
+    # model=xgboost.XGBRegressor()
     # 训练模型
+    model=xgboost.XGBRegressor(objective ='reg:squarederror', colsample_bytree = 1, max_depth = 8, n_estimators = 483)
     model.fit(X_train, y_train)
 
     # 预测
