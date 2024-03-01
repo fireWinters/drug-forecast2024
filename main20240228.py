@@ -187,17 +187,19 @@ def model_train(X_train, X_test, y_train, y_test, pbounds, model_type):
             'train_mse': train_mse, 'train_r2': train_r2,
             'train_mae': train_mae, 'train_mape': train_mape}
 
-# 定义一个函数，用于绘制真实值和预测值的折线图
-def plot_prediction(date, y_true, y_pred, model_type, save_name=None):
+# 定义一个函数，用于绘制真实值和预测值的折线图，药品分类代码也在图中显示
+def plot_prediction(date, y_true, y_pred, model_type,drug_code,drug_name,save_name=None):
     r2 = r2_score(y_true, y_pred)
     mae = mean_absolute_error(y_true, y_pred)
     mse = mean_squared_error(y_true, y_pred)
     mape = mean_absolute_percentage_error(y_true, y_pred)
+    drug_code = drug_code
+    drug_name = drug_name
 
     data = pd.DataFrame({
         'date': pd.to_datetime(date),
         'y_true': y_true,
-        'y_pred': y_pred
+        'y_pred': y_pred,
     })
 
     # 对日期进行排序
@@ -208,10 +210,15 @@ def plot_prediction(date, y_true, y_pred, model_type, save_name=None):
     plt.plot(data['date'], data['y_pred'], label='Predicted')
     plt.xlabel('Date')
     plt.ylabel('Values')
-    plt.title(f'r2: {r2:.2f}, mae: {mae:.2f}, mape: {mape:.2f}, mse: {mse:.2f}')
+    plt.title(f'moduleType:{model_type},code:{drug_code},r2: {r2:.2f}, mae: {mae:.2f}, mape: {mape:.2f}, mse: {mse:.2f},name:{drug_name}')
     plt.legend()
     plt.xticks(data['date'], rotation=45)
     plt.tight_layout()
+    # 保存图片，用模型名称和药品分类代码命名
+    if save_name:
+        plt.savefig(f'./{save_name}.png')
+    else:
+        plt.savefig(f'./{model_type}_{drug_code}.png')
     plt.show()
 
 # 定义一个函数，用于评估ARIMA模型
@@ -271,15 +278,33 @@ if __name__ == '__main__':
          'de_sum_30', 'de_mean_30', 'de_max_30', 'de_min_30', 'de_sum_60', 'de_mean_60', 'de_max_60', 'de_min_60',
          'de_sum_90', 'de_mean_90', 'de_max_90', 'de_min_90', ]], data['y']
 # 定义时间外样本（OOT）的索引，这些样本用于模型的最终评估
-# 这里选择了日期在2020-12-01之后且药品分类代码为'XJ01CA'的数据作为OOT样本
+# 这里选择了日期在2023-6-01之后且药品分类代码为'XJ01CA'的数据作为OOT样本
     # out of time sample
-    oot_index = data[(data['日期'] >= '2023-6-01')&(data['药品分类代码'] == 'XJ01CA')].index
+    # 获取系统日期
+    pre_today = datetime.now().date()
+    print(pre_today,'今天几号')
+    pre_today='2023-05-01'
+    print(pre_today,'给个常量')
+    # oot_index = data[(data['日期'] >= '2023-12-01')&(data['药品分类代码'] == 'XJ01CA')].index
+    # 预测日期 = today + pd.Timedelta(days=7)
+    oot_index = data[(data['日期'] >= pre_today) & (data['药品分类代码'] == 'XJ01CA')].index
    # 根据OOT索引筛选出对应的特征和目标数据
     oot_x, oot_y = X[X.index.isin(oot_index)], y[oot_index]
+    # 得到药品名称和药品分类代码
+    print(oot_index,'oot_index')
+    drug_name = data.loc[oot_index, '药品名称'].values[0]
+    drug_code = data.loc[oot_index, '药品分类代码'].values[0]
 # 将数据分割为训练集和测试集，测试集大小为20%，随机种子为100以确保结果可重复
-    # train & test
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=100)
+    # 如果OOT没有数据，则代码不再继续执行
+    if len(oot_x) == 0:
+        print('OOT没有数据',oot_x)
+    else:
+        # 如果OOT有数据，则继续执行
+        # 如果OOT数据比较少，可以考虑增加训练集的大小
 
+        # train & test
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=100)
+        # return X_train, X_test, y_train, y_test, oot_x, oot_y
 # 定义模型超参数的边界，这些超参数将在模型训练过程中进行优化
     pbounds = {
         'max_depth': (3, 8),             # 决策树的最大深度
@@ -305,11 +330,13 @@ if __name__ == '__main__':
     for model_trained in model_traineds:
         # 获取模型的相关信息
         model = model_trained['model']
+        # 得到模型的类型
+        model_type = model_trained['model_type']
         # 使用训练好的模型对OOT样本进行预测
         oot_pred = model.predict(oot_x)
         # 绘制真实值和预测值的折线图
         date = data.loc[oot_index, '日期']
-        plot_prediction(date, oot_y, oot_pred, model_type, save_name=None)
+        plot_prediction(date, oot_y, oot_pred, model_type,drug_code,drug_name, save_name=None)
 
     # p_values = range(0, 6)
     # d_values = range(0, 2)
