@@ -252,7 +252,7 @@ if __name__ == '__main__':
     df = get_all_dataframes()
     # 将分类数据与原始数据框架合并，基于'药品名称'列进行左连接
     # 这样可以将'药品分类代码'添加到原始数据框架中
-    cate_data = pd.read_csv(os.path.join(current_directory, 'B_with_category_202006.csv'))
+    cate_data = pd.read_csv(os.path.join(current_directory, 'drug_with_category_2024.csv'))
     df = pd.merge(df, cate_data[['药品名称', '药品分类代码']], how='left', on='药品名称')
     # 对数据进行处理，包括日期、季度和时序特征的处理
     # day_lst参数指定了要生成的时序特征的时间窗口长度
@@ -269,7 +269,7 @@ if __name__ == '__main__':
     # 对数据按照'药品分类代码'进行分组，并计算每个分类的药品数量
     # 这一步可能是为了查看不同分类的药品数量分布
     df.groupby('药品分类代码')['药品分类代码'].count()
-    data = data[data['药品分类代码'] == 'XJ01CA']
+    data = data[data['药品分类代码'] == 'J01CA']
 # 选择特征列和目标列
 # 特征包括月份、季度和不同时间窗口（1天、3天、7天、14天、30天、60天、90天）的销售数据统计（总和、平均值、最大值、最小值）
     X, y = data[['month', 'quarter', 'de_sum_1', 'de_mean_1', 'de_max_1', 'de_min_1', 'de_sum_3', 'de_mean_3', 'de_max_3',
@@ -278,16 +278,16 @@ if __name__ == '__main__':
          'de_sum_30', 'de_mean_30', 'de_max_30', 'de_min_30', 'de_sum_60', 'de_mean_60', 'de_max_60', 'de_min_60',
          'de_sum_90', 'de_mean_90', 'de_max_90', 'de_min_90', ]], data['y']
 # 定义时间外样本（OOT）的索引，这些样本用于模型的最终评估
-# 这里选择了日期在2023-6-01之后且药品分类代码为'XJ01CA'的数据作为OOT样本
+# 这里选择了日期在2023-6-01之后且药品分类代码为'J01CA'的数据作为OOT样本
     # out of time sample
     # 获取系统日期
     pre_today = datetime.now().date()
     print(pre_today,'今天几号')
     pre_today='2023-05-01'
     print(pre_today,'给个常量')
-    # oot_index = data[(data['日期'] >= '2023-12-01')&(data['药品分类代码'] == 'XJ01CA')].index
+    # oot_index = data[(data['日期'] >= '2023-12-01')&(data['药品分类代码'] == 'J01CA')].index
     # 预测日期 = today + pd.Timedelta(days=7)
-    oot_index = data[(data['日期'] >= pre_today) & (data['药品分类代码'] == 'XJ01CA')].index
+    oot_index = data[(data['日期'] >= pre_today) & (data['药品分类代码'] == 'J01CA')].index
    # 根据OOT索引筛选出对应的特征和目标数据
     oot_x, oot_y = X[X.index.isin(oot_index)], y[oot_index]
     # 得到药品名称和药品分类代码
