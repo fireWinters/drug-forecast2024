@@ -249,8 +249,10 @@ def model_train_and_evaluation(data, pbounds, model_types):
              'de_sum_30', 'de_mean_30', 'de_max_30', 'de_min_30', 'de_sum_60', 'de_mean_60', 'de_max_60', 'de_min_60',
              'de_sum_90', 'de_mean_90', 'de_max_90', 'de_min_90', ]], cate_data['y']
         # 定义时间外样本（OOT）的索引，这些样本用于模型的最终评估
-        # 这里选择了日期在2020-12-01之后且药品分类代码为'XJ01CA'的数据作为OOT样本
-        oot_index = cate_data[cate_data['药品分类代码'] == cate].index
+        # 这里选择了日期在今天之后，药品代码为cate的样本作为OOT样本
+        today = datetime.now().date()
+        oot_index = cate_data[(cate_data['日期'] > today)&(cate_data['药品分类代码'] == cate)].index
+        # oot_index = cate_data[cate_data['药品分类代码'] == cate].index
         # 根据OOT索引筛选出对应的特征和目标数据
         oot_x, oot_y = X[X.index.isin(oot_index)], y[oot_index]
         # 将数据分割为训练集和测试集，测试集大小为20%，随机种子为100以确保结果可重复
