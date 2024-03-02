@@ -62,8 +62,13 @@ def get_all_dataframes():
 # # 定义一个函数，用于数据清洗
 def data_cleaning(df):
     """把前九十天没有减少数量的剔除掉"""
-
     df = df[df['de_sum_90'] > 0]
+    # 把前180天没有减少数量的剔除掉
+    # df = df[df['de_sum_180'] > 0]
+    # 把药品分类代码列值为删的数据全部剔除
+    df = df[df['药品分类代码'] != '删']
+    # 把药品分类代码列值为空的数据全部剔除
+    df = df[~df['药品分类代码'].isna()]
     return df
 
 # 定义一个函数，用于处理标签
@@ -120,7 +125,7 @@ def xgboost_cv_func(data, target, pbounds):
                   }
         model = xgb.XGBRegressor(**params)
         return cross_val_score(model, data, target, cv=5, scoring='neg_mean_squared_error').mean()
-
+# BayesianOptimization是贝叶斯优化的一个类，用于优化超参数
     optimizer = BayesianOptimization(
         f=xgboost_crossval,
         pbounds=pbounds)
@@ -128,7 +133,7 @@ def xgboost_cv_func(data, target, pbounds):
     optimizer.maximize(init_points=5, n_iter=50)
     best_params = optimizer.max
     best_params = best_params['params']
-    best_params['tree_method'] = 'gpu_hist'
+    # best_params['tree_method'] = 'gpu_hist'
     best_params['max_depth'] = int(best_params['max_depth'])
     best_params['n_estimators'] = int(best_params['n_estimators'])
     return best_params
@@ -189,16 +194,18 @@ def model_train(X_train, X_test, y_train, y_test, pbounds, model_type):
             'train_mae': train_mae, 'train_mape': train_mape}
 
 # 定义一个函数，用于绘制真实值和预测值的折线图
-def plot_prediction(date, y_true, y_pred, model_type, save_name=None):
+def plot_prediction(date, y_true, y_pred, model_type,drug_code,drug_name,save_name=None):
     r2 = r2_score(y_true, y_pred)
     mae = mean_absolute_error(y_true, y_pred)
     mse = mean_squared_error(y_true, y_pred)
     mape = mean_absolute_percentage_error(y_true, y_pred)
+    drug_code = drug_code
+    drug_name = drug_name
 
     data = pd.DataFrame({
         'date': pd.to_datetime(date),
         'y_true': y_true,
-        'y_pred': y_pred
+        'y_pred': y_pred,
     })
 
     # 对日期进行排序
@@ -209,10 +216,15 @@ def plot_prediction(date, y_true, y_pred, model_type, save_name=None):
     plt.plot(data['date'], data['y_pred'], label='Predicted')
     plt.xlabel('Date')
     plt.ylabel('Values')
-    plt.title(f'r2: {r2:.2f}, mae: {mae:.2f}, mape: {mape:.2f}, mse: {mse:.2f}')
+    plt.title(f'moduleType:{model_type},code:{drug_code},r2: {r2:.2f}, mae: {mae:.2f}, mape: {mape:.2f}, mse: {mse:.2f},name:{drug_name}')
     plt.legend()
     plt.xticks(data['date'], rotation=45)
     plt.tight_layout()
+    # 保存图片，用模型名称和药品分类代码命名
+    if save_name:
+        plt.savefig(f'./{save_name}.png')
+    else:
+        plt.savefig(f'./{model_type}_{drug_code}.png')
     plt.show()
 
 # 定义一个函数，用于评估ARIMA模型
@@ -242,44 +254,58 @@ def model_train_and_evaluation(data, pbounds, model_types):
     for cate in cate_lst:
         # 筛选出指定分类代码的数据
         cate_data = data[data['药品分类代码'] == cate]
-        # 选择特征列和目标列
-        X, y = cate_data[['month', 'quarter', 'de_sum_1', 'de_mean_1', 'de_max_1', 'de_min_1', 'de_sum_3', 'de_mean_3', 'de_max_3',
-             'de_min_3',
-             'de_sum_7', 'de_mean_7', 'de_max_7', 'de_min_7', 'de_sum_14', 'de_mean_14', 'de_max_14', 'de_min_14',
-             'de_sum_30', 'de_mean_30', 'de_max_30', 'de_min_30', 'de_sum_60', 'de_mean_60', 'de_max_60', 'de_min_60',
-             'de_sum_90', 'de_mean_90', 'de_max_90', 'de_min_90', ]], cate_data['y']
-        # 定义时间外样本（OOT）的索引，这些样本用于模型的最终评估
-        # 这里选择了日期在今天之后，药品代码为cate的样本作为OOT样本
-        today = datetime.now().date()
-        oot_index = cate_data[(cate_data['日期'] > today)&(cate_data['药品分类代码'] == cate)].index
-        # oot_index = cate_data[cate_data['药品分类代码'] == cate].index
-        # 根据OOT索引筛选出对应的特征和目标数据
-        oot_x, oot_y = X[X.index.isin(oot_index)], y[oot_index]
-        # 将数据分割为训练集和测试集，测试集大小为20%，随机种子为100以确保结果可重复
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=100)
+        # 如果数据小于100条，就跳过
+        if len(cate_data) < 100:
+            continue
+        else:
+            print('cate_data:',cate_data)
+            # 选择特征列和目标列
+            X, y = cate_data[['month', 'quarter', 'de_sum_1', 'de_mean_1', 'de_max_1', 'de_min_1', 'de_sum_3', 'de_mean_3', 'de_max_3',
+                'de_min_3',
+                'de_sum_7', 'de_mean_7', 'de_max_7', 'de_min_7', 'de_sum_14', 'de_mean_14', 'de_max_14', 'de_min_14',
+                'de_sum_30', 'de_mean_30', 'de_max_30', 'de_min_30', 'de_sum_60', 'de_mean_60', 'de_max_60', 'de_min_60',
+                'de_sum_90', 'de_mean_90', 'de_max_90', 'de_min_90', ]], cate_data['y']
+            # 定义时间外样本（OOT）的索引，这些样本用于模型的最终评估
+            # 这里选择了日期在今天之后，药品代码为cate的样本作为OOT样本
+            # today = datetime.now().date()
+            pre_today='2023-05-01'
+            print(pre_today,'给个常量',cate)
+            oot_index = cate_data[(cate_data['日期'] > pre_today)&(cate_data['药品分类代码'] == cate)].index
+            # oot_index = cate_data[cate_data['药品分类代码'] == cate].index
+            # 根据OOT索引筛选出对应的特征和目标数据
+            oot_x, oot_y = X[X.index.isin(oot_index)], y[oot_index]
+            if len(oot_x) == 0:
+                print('OOT没有数据',oot_x)
+            else:
+            # 将数据分割为训练集和测试集，测试集大小为20%，随机种子为100以确保结果可重复
+                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=100)
 
-        
-        # 初始化一个列表来存储训练好的模型
-        # training models
-        model_traineds = []
-        # 分别使用XGBoost和LightGBM算法训练模型
-        
-        # 对每个模型进行训练
-        for model_type in model_types:
-            # 训练模型，并返回训练好的模型及其相关信息
-            model_trained = model_train(X_train, X_test, y_train, y_test, pbounds, model_type)
-            # 将训练好的模型添加到列表中
-            model_traineds.append(model_trained)
-        # 对每个模型进行评估
-        # evaluation models
-        for model_trained in model_traineds:
-            # 获取模型的相关信息
-            model = model_trained['model']
-            # 使用训练好的模型对OOT样本进行预测
-            oot_pred = model.predict(oot_x)
-            # 绘制真实值和预测值的折线图
-            date = data.loc[oot_index, '日期']
-            plot_prediction(date, oot_y, oot_pred, model_type, save_name=None)
+            # drug_code=cate_data['药品分类代码'].iloc[0]
+            drug_name = cate_data.loc[oot_index, '药品名称'].values[0]
+            drug_code = cate_data.loc[oot_index, '药品分类代码'].values[0]
+            # 初始化一个列表来存储训练好的模型
+            # training models
+            model_traineds = []
+            # 分别使用XGBoost和LightGBM算法训练模型
+            
+            # 对每个模型进行训练
+            for model_type in model_types:
+                # 训练模型，并返回训练好的模型及其相关信息
+                model_trained = model_train(X_train, X_test, y_train, y_test, pbounds, model_type)
+                # 将训练好的模型添加到列表中
+                model_traineds.append(model_trained)
+            # 对每个模型进行评估
+            # evaluation models
+            for model_trained in model_traineds:
+                # 获取模型的相关信息
+                model = model_trained['model']
+                # 得到模型的类型
+                model_type = model_trained['model_type']
+                # 使用训练好的模型对OOT样本进行预测
+                oot_pred = model.predict(oot_x)
+                # 绘制真实值和预测值的折线图
+                date = data.loc[oot_index, '日期']
+                plot_prediction(date, oot_y, oot_pred, model_type,drug_code,drug_name, save_name=None)
 
 
 
@@ -292,7 +318,7 @@ if __name__ == '__main__':
     df = get_all_dataframes()
     # 将分类数据与原始数据框架合并，基于'药品名称'列进行左连接
     # 这样可以将'药品分类代码'添加到原始数据框架中
-    cate_data = pd.read_csv(os.path.join(current_directory, 'B_with_category_202006.csv'))
+    cate_data = pd.read_csv(os.path.join(current_directory, 'drug_with_category_2024.csv'))
     df = pd.merge(df, cate_data[['药品名称', '药品分类代码']], how='left', on='药品名称')
     # 对数据进行处理，包括日期、季度和时序特征的处理
     # day_lst参数指定了要生成的时序特征的时间窗口长度
