@@ -120,7 +120,7 @@ def xgboost_cv_func(data, target, pbounds):
                   'min_child_weight': min_child_weight,
                   'subsample': subsample,
                   'colsample_bytree': colsample_bytree,
-                #   'tree_method': 'gpu_hist'
+                  'tree_method': 'gpu_hist'
                   }
         model = xgb.XGBRegressor(**params)
         return cross_val_score(model, data, target, cv=5, scoring='neg_mean_squared_error').mean()
@@ -132,7 +132,7 @@ def xgboost_cv_func(data, target, pbounds):
     optimizer.maximize(init_points=5, n_iter=50)
     best_params = optimizer.max
     best_params = best_params['params']
-    # best_params['tree_method'] = 'gpu_hist'
+    best_params['tree_method'] = 'gpu_hist'
     best_params['max_depth'] = int(best_params['max_depth'])
     best_params['n_estimators'] = int(best_params['n_estimators'])
     return best_params
@@ -250,8 +250,11 @@ def evaluate_models(dataset, pdq):
 
 # 主函数
 if __name__ == '__main__':
-    current_directory = r'/Users/callustang/tangCode/shantouCode/drug-forecast2024'
-    data_folder_path = os.path.join(current_directory, 'realData')
+    # current_directory = r'/Users/callustang/tangCode/shantouCode/drug-forecast2024'
+    # data_folder_path = os.path.join(current_directory, 'realData')
+    # 读取realData文件夹下的所有数据，并将每个sheet拼接成一个DataFrame,用相对路径的方法读取数据
+    data_folder_path = r'./realData'
+    current_directory = os.path.dirname(__file__)
 
     # 得到所有数据
     df = get_all_dataframes()
@@ -290,9 +293,9 @@ if __name__ == '__main__':
     # out of time sample
     # 获取系统日期
     pre_today = datetime.now().date()
-    print(pre_today,'今天几号')
+    # print(pre_today,'今天几号')
     pre_today='2023-05-01'
-    print(pre_today,'给个常量')
+    # print(pre_today,'给个常量')
     # oot_index = data[(data['日期'] >= '2023-12-01')&(data['药品分类代码'] == 'J01CA')].index
     # 预测日期 = today + pd.Timedelta(days=7)
     oot_index = data[(data['日期'] >= pre_today) & (data['药品分类代码'] == 'J01CA')].index
