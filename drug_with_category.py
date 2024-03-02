@@ -26,10 +26,22 @@ def drug_category(data,fileB):
     data['药品分类代码'] = data['药品名称'].apply(get_category)
 
     # 将处理后的B文件保存为新csv文件
-    data.to_csv('B_with_category_202006.csv', index=False)
+    data.to_csv('B_with_category_202306.csv', index=False)
+    # 将药品分类代码列的值全部改成字符串类型
+    data['药品分类代码'] = data['药品分类代码'].astype(str)
+    # 判断字符串长度是否为0，如果为0则表示该药品名称没有匹配到药品分类代码
+    data['药品分类代码'] = data['药品分类代码'].apply(lambda x: '未匹配到' if len(x) == 0 else x)
+    # 导出该文件的药品分类代码列，并判断数据类型和是否有空值
+    # 输出药品分类代码列值为空的数据
+    print(data['药品分类代码'].value_counts())
+    # print(data['药品分类代码'])
+    cate_lst = data['药品分类代码'].unique()
+    print(cate_lst)
+    print(data['药品分类代码'].isnull().sum())
+
     return data
 
 # 读取药品分类代码文件
-fileB = pd.read_csv('./ClassificationOfWesternMedicineFullNew.csv')
-data=pd.read_excel('/Users/callustang/tangCode/shantouCode/drug-forecast2024/realData/2020.6.xlsx')
+fileB = pd.read_excel('./B_with_category_202402.xlsx')
+data=pd.read_excel('/Users/callustang/tangCode/shantouCode/drug-forecast2024/realData/2023.6.xlsx')
 data = drug_category(data,fileB)
