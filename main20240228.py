@@ -60,9 +60,14 @@ def get_all_dataframes():
 
 # # 定义一个函数，用于数据清洗
 def data_cleaning(df):
-    """把前九十天没有减少数量的剔除掉"""
+    """把前90/180天没有减少数量的剔除掉"""
 
     df = df[df['de_sum_90'] > 0]
+    # df = df[df['de_sum_180'] > 0]
+     # 把药品分类代码列值为删的数据全部剔除
+    df = df[df['药品分类代码'] != '删']
+    # 删除药品分类代码为空的数据
+    df = df[~df['药品分类代码'].isna()]
     return df
 
 # 定义一个函数，用于处理标签
@@ -256,9 +261,12 @@ if __name__ == '__main__':
     df = pd.merge(df, cate_data[['药品名称', '药品分类代码']], how='left', on='药品名称')
     # 对数据进行处理，包括日期、季度和时序特征的处理
     # day_lst参数指定了要生成的时序特征的时间窗口长度
-    data = data_process(df, [1, 3, 7, 14, 30, 60, 90])
+    data = data_process(df, [1, 3, 7, 14, 30, 60, 90,180])
     # 对处理后的数据进行清洗，可能包括去除缺失值、异常值或转换数据类型等操作
     data = data_cleaning(data)
+    # 数据输出为csv格式
+    data.to_csv('./category_data_all_S_noNan.csv', index=False)
+    # print(data,'清理后的数据')
     # 对数据进行标签处理，这里的标签可能指的是预测目标
     # 使用未来7天的数据作为标签
     data = label_process(data, 7)
