@@ -200,7 +200,7 @@ def contains_chinese(text):
     return False
 # 设置中文字体的函数
 def set_chinese_font():
-    return FontProperties(fname='./STSONG.TTF')  # 替换为您的中文字体文件路径
+    return FontProperties(fname='./fronts/STSONG.TTF')  # 替换为您的中文字体文件路径
 
 # 定义一个函数，用于绘制真实值和预测值的折线图，药品分类代码也在图中显示
 def plot_prediction(date, y_true, y_pred, model_type,drug_code,drug_name,save_name=None):
