@@ -6,6 +6,7 @@ from tqdm import tqdm  # 用于在循环中显示进度条
 import xgboost  # 用于使用XGBoost算法
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, mean_absolute_percentage_error  # 用于模型评估
 import matplotlib.pyplot as plt  # 用于绘图
+from matplotlib.font_manager import FontProperties
 import xgboost as xgb  # 用于使用XGBoost算法
 from sklearn.model_selection import cross_val_score, train_test_split  # 用于交叉验证和数据集划分
 from bayes_opt import BayesianOptimization  # 用于贝叶斯优化
@@ -191,6 +192,15 @@ def model_train(X_train, X_test, y_train, y_test, pbounds, model_type):
             'test_mae': test_mae, 'test_mape': test_mape,
             'train_mse': train_mse, 'train_r2': train_r2,
             'train_mae': train_mae, 'train_mape': train_mape}
+# 检查是否含有中文
+def contains_chinese(text):
+    for char in text:
+        if '\u4e00' <= char <= '\u9fff':
+            return True
+    return False
+# 设置中文字体的函数
+def set_chinese_font():
+    return FontProperties(fname='./STSONG.TTF')  # 替换为您的中文字体文件路径
 
 # 定义一个函数，用于绘制真实值和预测值的折线图，药品分类代码也在图中显示
 def plot_prediction(date, y_true, y_pred, model_type,drug_code,drug_name,save_name=None):
@@ -215,16 +225,21 @@ def plot_prediction(date, y_true, y_pred, model_type,drug_code,drug_name,save_na
     plt.plot(data['date'], data['y_pred'], label='Predicted')
     plt.xlabel('Date')
     plt.ylabel('Values')
-    plt.title(f'moduleType:{model_type},code:{drug_code},r2: {r2:.2f}, mae: {mae:.2f}, mape: {mape:.2f}, mse: {mse:.2f},name:{drug_name}')
+    # 这个是文件名称
+    one_title=f'moduleType:{model_type},code:{drug_code},r2: {r2:.2f}, mae: {mae:.2f}, mape: {mape:.2f}, mse: {mse:.2f},name:{drug_name}'
+    if contains_chinese(one_title):
+        plt.title(one_title, fontproperties=set_chinese_font())
+    else:
+        plt.title(one_title)
     plt.legend()
     plt.xticks(data['date'], rotation=45)
     plt.tight_layout()
-    # 保存图片，用模型名称和药品分类代码命名
+    # 保存图片，用模型名称和药品分类代码命名，如果没有模型名称，用drug名，否则用模型名
     if save_name:
         plt.savefig(f'./{save_name}.png')
     else:
         plt.savefig(f'./{model_type}_{drug_code}.png')
-    plt.show()
+    # plt.show()
 
 # 定义一个函数，用于评估ARIMA模型
 def evaluate_arima_model(X, arima_order):
@@ -280,7 +295,7 @@ if __name__ == '__main__':
     # 对数据按照'药品分类代码'进行分组，并计算每个分类的药品数量
     # 这一步可能是为了查看不同分类的药品数量分布
     df.groupby('药品分类代码')['药品分类代码'].count()
-    data = data[data['药品分类代码'] == 'J01CA']
+    data = data[data['药品分类代码'] == '多种微量元素II']
 # 选择特征列和目标列
 # 特征包括月份、季度和不同时间窗口（1天、3天、7天、14天、30天、60天、90天）的销售数据统计（总和、平均值、最大值、最小值）
     X, y = data[['month', 'quarter', 'de_sum_1', 'de_mean_1', 'de_max_1', 'de_min_1', 'de_sum_3', 'de_mean_3', 'de_max_3',
@@ -289,16 +304,16 @@ if __name__ == '__main__':
          'de_sum_30', 'de_mean_30', 'de_max_30', 'de_min_30', 'de_sum_60', 'de_mean_60', 'de_max_60', 'de_min_60',
          'de_sum_90', 'de_mean_90', 'de_max_90', 'de_min_90', ]], data['y']
 # 定义时间外样本（OOT）的索引，这些样本用于模型的最终评估
-# 这里选择了日期在2023-6-01之后且药品分类代码为'J01CA'的数据作为OOT样本
+# 这里选择了日期在2023-6-01之后且药品分类代码为'多种微量元素II'的数据作为OOT样本
     # out of time sample
     # 获取系统日期
     pre_today = datetime.now().date()
     # print(pre_today,'今天几号')
     pre_today='2023-05-01'
     # print(pre_today,'给个常量')
-    # oot_index = data[(data['日期'] >= '2023-12-01')&(data['药品分类代码'] == 'J01CA')].index
+    # oot_index = data[(data['日期'] >= '2023-12-01')&(data['药品分类代码'] == '多种微量元素II')].index
     # 预测日期 = today + pd.Timedelta(days=7)
-    oot_index = data[(data['日期'] >= pre_today) & (data['药品分类代码'] == 'J01CA')].index
+    oot_index = data[(data['日期'] >= pre_today) & (data['药品分类代码'] == '多种微量元素II')].index
    # 根据OOT索引筛选出对应的特征和目标数据
     oot_x, oot_y = X[X.index.isin(oot_index)], y[oot_index]
     # 得到药品名称和药品分类代码
