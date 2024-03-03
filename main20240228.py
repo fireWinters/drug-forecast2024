@@ -13,6 +13,7 @@ from bayes_opt import BayesianOptimization  # 用于贝叶斯优化
 import lightgbm as lgb  # 用于使用LightGBM算法
 from statsmodels.tsa.arima_model import ARIMA  # 用于使用ARIMA模型
 import itertools  # 用于创建迭代器
+import re
 
 # 定义一个函数，用于绘制真实值和预测值的散点图，并绘制对角线
 def scatter_plot_with_diagonal(y_true, y_pred):
@@ -201,6 +202,10 @@ def contains_chinese(text):
 # 设置中文字体的函数
 def set_chinese_font():
     return FontProperties(fname='./fronts/STSONG.TTF')  # 替换为您的中文字体文件路径
+# 检查文件名，如果有特殊字符，将特殊字符统一替换为-
+def check_filename(filename):
+    filename = re.sub(r'[^\w\s]', '_', filename)
+    return filename
 
 # 定义一个函数，用于绘制真实值和预测值的折线图，药品分类代码也在图中显示
 def plot_prediction(date, y_true, y_pred, model_type,drug_code,drug_name,save_name=None):
@@ -235,6 +240,7 @@ def plot_prediction(date, y_true, y_pred, model_type,drug_code,drug_name,save_na
     plt.xticks(data['date'], rotation=45)
     plt.tight_layout()
     # 保存图片，用模型名称和药品分类代码命名，如果没有模型名称，用drug名，否则用模型名
+    drug_code= check_filename(drug_code)
     if save_name:
         plt.savefig(f'./{save_name}.png')
     else:
@@ -295,7 +301,18 @@ if __name__ == '__main__':
     # 对数据按照'药品分类代码'进行分组，并计算每个分类的药品数量
     # 这一步可能是为了查看不同分类的药品数量分布
     df.groupby('药品分类代码')['药品分类代码'].count()
-    data = data[data['药品分类代码'] == '多种微量元素II']
+    cate_lst = data['药品分类代码'].unique()
+    # 将列表cate_lst分成2个列表，分开2列的值是药品分类代码在羟乙基淀粉(130/0.4)氯化钠之前的为一组，之后的为一组
+    # 找到"羟乙基淀粉(130/0.4)氯化钠"在列表中的索引
+    idx = list(cate_lst).index('羟乙基淀粉(130/0.4)氯化钠')
+
+    # 将列表cate_lst分成两个列表
+    cate_lst_before = cate_lst[:idx]
+    cate_lst_after = cate_lst[idx+1:]
+
+    print("羟乙基淀粉(130/0.4)氯化钠之前的列表：", cate_lst_before)
+    print("羟乙基淀粉(130/0.4)氯化钠之后的列表：", cate_lst_after)
+    data = data[data['药品分类代码'] == '羟乙基淀粉(130/0.4)氯化钠']
 # 选择特征列和目标列
 # 特征包括月份、季度和不同时间窗口（1天、3天、7天、14天、30天、60天、90天）的销售数据统计（总和、平均值、最大值、最小值）
     X, y = data[['month', 'quarter', 'de_sum_1', 'de_mean_1', 'de_max_1', 'de_min_1', 'de_sum_3', 'de_mean_3', 'de_max_3',
@@ -304,16 +321,16 @@ if __name__ == '__main__':
          'de_sum_30', 'de_mean_30', 'de_max_30', 'de_min_30', 'de_sum_60', 'de_mean_60', 'de_max_60', 'de_min_60',
          'de_sum_90', 'de_mean_90', 'de_max_90', 'de_min_90', ]], data['y']
 # 定义时间外样本（OOT）的索引，这些样本用于模型的最终评估
-# 这里选择了日期在2023-6-01之后且药品分类代码为'多种微量元素II'的数据作为OOT样本
+# 这里选择了日期在2023-6-01之后且药品分类代码为'羟乙基淀粉(130/0.4)氯化钠'的数据作为OOT样本
     # out of time sample
     # 获取系统日期
     pre_today = datetime.now().date()
     # print(pre_today,'今天几号')
     pre_today='2023-05-01'
     # print(pre_today,'给个常量')
-    # oot_index = data[(data['日期'] >= '2023-12-01')&(data['药品分类代码'] == '多种微量元素II')].index
+    # oot_index = data[(data['日期'] >= '2023-12-01')&(data['药品分类代码'] == '羟乙基淀粉(130/0.4)氯化钠')].index
     # 预测日期 = today + pd.Timedelta(days=7)
-    oot_index = data[(data['日期'] >= pre_today) & (data['药品分类代码'] == '多种微量元素II')].index
+    oot_index = data[(data['日期'] >= pre_today) & (data['药品分类代码'] == '羟乙基淀粉(130/0.4)氯化钠')].index
    # 根据OOT索引筛选出对应的特征和目标数据
     oot_x, oot_y = X[X.index.isin(oot_index)], y[oot_index]
     # 得到药品名称和药品分类代码
