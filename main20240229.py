@@ -6,6 +6,7 @@ from tqdm import tqdm  # 用于在循环中显示进度条
 import xgboost  # 用于使用XGBoost算法
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error, mean_absolute_percentage_error  # 用于模型评估
 import matplotlib.pyplot as plt  # 用于绘图
+from matplotlib.font_manager import FontProperties  # 用于设置中文字体
 import xgboost as xgb  # 用于使用XGBoost算法
 from sklearn.model_selection import cross_val_score, train_test_split  # 用于交叉验证和数据集划分
 from bayes_opt import BayesianOptimization  # 用于贝叶斯优化
@@ -132,7 +133,7 @@ def xgboost_cv_func(data, target, pbounds):
     optimizer.maximize(init_points=5, n_iter=50)
     best_params = optimizer.max
     best_params = best_params['params']
-    # best_params['tree_method'] = 'gpu_hist'
+    best_params['tree_method'] = 'gpu_hist'
     best_params['max_depth'] = int(best_params['max_depth'])
     best_params['n_estimators'] = int(best_params['n_estimators'])
     return best_params
@@ -192,6 +193,17 @@ def model_train(X_train, X_test, y_train, y_test, pbounds, model_type):
             'train_mse': train_mse, 'train_r2': train_r2,
             'train_mae': train_mae, 'train_mape': train_mape}
 
+
+# 检查是否含有中文
+def contains_chinese(text):
+    for char in text:
+        if '\u4e00' <= char <= '\u9fff':
+            return True
+    return False
+# 设置中文字体的函数
+def set_chinese_font():
+    return FontProperties(fname='./fronts/STSONG.TTF')  # 替换为您的中文字体文件路径
+
 # 定义一个函数，用于绘制真实值和预测值的折线图
 def plot_prediction(date, y_true, y_pred, model_type,drug_code,drug_name,save_name=None):
     r2 = r2_score(y_true, y_pred)
@@ -215,16 +227,20 @@ def plot_prediction(date, y_true, y_pred, model_type,drug_code,drug_name,save_na
     plt.plot(data['date'], data['y_pred'], label='Predicted')
     plt.xlabel('Date')
     plt.ylabel('Values')
-    plt.title(f'moduleType:{model_type},code:{drug_code},r2: {r2:.2f}, mae: {mae:.2f}, mape: {mape:.2f}, mse: {mse:.2f},name:{drug_name}')
+    # 这个是文件名称
+    one_title=f'moduleType:{model_type},code:{drug_code},r2: {r2:.2f}, mae: {mae:.2f}, mape: {mape:.2f}, mse: {mse:.2f},name:{drug_name}'
+    if contains_chinese(one_title):
+        plt.title(one_title, fontproperties=set_chinese_font())
+    else:
+        plt.title(one_title)
     plt.legend()
     plt.xticks(data['date'], rotation=45)
     plt.tight_layout()
-    # 保存图片，用模型名称和药品分类代码命名
+    # 保存图片，用模型名称和药品分类代码命名，如果没有模型名称，用drug名，否则用模型名
     if save_name:
         plt.savefig(f'./{save_name}.png')
     else:
         plt.savefig(f'./{model_type}_{drug_code}.png')
-    # plt.show()
 
 # 定义一个函数，用于评估ARIMA模型
 def evaluate_arima_model(X, arima_order):
@@ -250,6 +266,9 @@ def evaluate_models(dataset, pdq):
 def model_train_and_evaluation(data, pbounds, model_types):
     # 分类代码列表
     cate_lst = data['药品分类代码'].unique()
+    # 导出data中的药品分类代码和药品名称列，用scv文件保存
+    data[['药品分类代码', '药品名称']].to_csv('./all_category_new.csv', index=False)
+
     for cate in cate_lst:
         # 筛选出指定分类代码的数据
         cate_data = data[data['药品分类代码'] == cate]
