@@ -127,6 +127,7 @@ def xgboost_cv_func(data, target, pbounds):
         return cross_val_score(model, data, target, cv=5, scoring='neg_mean_squared_error').mean()
 # BayesianOptimization是贝叶斯优化的一个类，用于优化超参数
     optimizer = BayesianOptimization(
+        allow_duplicate_points=True,
         f=xgboost_crossval,
         pbounds=pbounds)
 
@@ -148,8 +149,9 @@ def lightgbm_cv_func(data, target, pbounds):
                   'subsample': subsample}
         model = lgb.LGBMRegressor(**params)
         return cross_val_score(model, data, target, cv=5, scoring='neg_mean_squared_error').mean()
-
+    # 给贝叶斯优化传入参数allow_duplicate_points=True，允许重复的点
     optimizer = BayesianOptimization(
+        allow_duplicate_points=True,
         f=lgb_crossval,
         pbounds=pbounds)
 
@@ -266,15 +268,33 @@ def evaluate_models(dataset, pdq):
 def model_train_and_evaluation(data, pbounds, model_types):
     # 分类代码列表羟乙CC基淀粉(130/0.4)氯化钠
     cate_lst = data['药品分类代码'].unique()
+
+    # 获取XGBoostImg文件夹下所有图片的名字
+    folder_path = 'XGBoostImg'
+    file_names = [file_name for file_name in os.listdir(folder_path) if file_name.endswith('.png')]
+    extracted_names = []
+    for file_name in file_names:
+        start_index = file_name.find('xgboost_') + len('xgboost_')
+        end_index = file_name.find('.png')
+        extracted_name = file_name[start_index:end_index]
+        extracted_names.append(extracted_name)
+    # 对比文件中的名称，将extracted_names里没有的药品分类代码保存为新CSV文件
+    different_names = [name for name in cate_lst if name not in extracted_names]
+    # 剔除羟乙基淀粉(130/0.4)氯化钠这个药品从different_names中
+    different_names = [name for name in different_names if name != '羟乙基淀粉(130/0.4)氯化钠']
+
+    
+    cate_lst_after=different_names
+    
     # 将列表cate_lst分成2个列表，分开2列的值是药品分类代码在羟乙基淀粉(130/0.4)氯化钠之前的为一组，之后的为一组
     # 找到"羟乙基淀粉(130/0.4)氯化钠"在列表中的索引
-    idx = list(cate_lst).index('羟乙基淀粉(130/0.4)氯化钠')
+    # idx = list(cate_lst).index('羟乙基淀粉(130/0.4)氯化钠')
 
-    # 将列表cate_lst分成两个列表
-    cate_lst_before = cate_lst[:160]
-    cate_lst_after = cate_lst[160+1:]
+    # # 将列表cate_lst分成两个列表
+    # cate_lst_before = cate_lst[:idx]
+    # cate_lst_after = cate_lst[idx+1:]
 
-    print("羟乙基淀粉(130/0.4)氯化钠之前的列表：", cate_lst_before)
+    # print("羟乙基淀粉(130/0.4)氯化钠之前的列表：", cate_lst_before)
     print("羟乙基淀粉(130/0.4)氯化钠之后的列表：", cate_lst_after)
     # 导出data中的药品分类代码和药品名称列，用scv文件保存
     # data[['药品分类代码', '药品名称']].to_csv('./all_category_new.csv', index=False)
@@ -301,6 +321,8 @@ def model_train_and_evaluation(data, pbounds, model_types):
             # oot_index = cate_data[cate_data['药品分类代码'] == cate].index
             # 根据OOT索引筛选出对应的特征和目标数据
             oot_x, oot_y = X[X.index.isin(oot_index)], y[oot_index]
+            # 这些药品没有数据
+            # ['A01', 'J04AB', '利福平II', 'L01AD', 'N02BB', 'A14', 'R01AB', 'M05BX', 'R05F', 'A02BA', '不在用', 'B01AX', 'N01BA', 'J01DE', 'J01GA', 'J01CA16', 'J01CF', 'N02BA', 'N04BD', '氨酚待因II', '硝苯地平IV', 'J05AC', 'J05AX', 'N05AN', 'D03', '组牛碱性成纤维细胞生长因子)', 'S01L', 'P02C']
             # 如果OOT没有数据，则代码不再继续执行
             if len(oot_x) == 0:
                 print('OOT没有数据',oot_x)
