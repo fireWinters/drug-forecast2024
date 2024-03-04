@@ -310,6 +310,20 @@ if __name__ == '__main__':
     cate_lst_before = cate_lst[:idx]
     cate_lst_after = cate_lst[idx+1:]
 
+
+    # 获取XGBoostImg文件夹下所有图片的名字
+    folder_path = 'XGBoostImg'
+    file_names = [file_name for file_name in os.listdir(folder_path) if file_name.endswith('.png')]
+    extracted_names = []
+    for file_name in file_names:
+        start_index = file_name.find('xgboost_') + len('xgboost_')
+        end_index = file_name.find('.png')
+        extracted_name = file_name[start_index:end_index]
+        extracted_names.append(extracted_name)
+    # 对比文件中的名称，将extracted_names里没有的药品分类代码保存为新CSV文件
+    different_names = [name for name in cate_lst if name not in extracted_names]
+    print(different_names,'不同的药品分类代码提取完成')
+
     print("羟乙基淀粉(130/0.4)氯化钠之前的列表：", cate_lst_before)
     print("羟乙基淀粉(130/0.4)氯化钠之后的列表：", cate_lst_after)
     data = data[data['药品分类代码'] == '羟乙基淀粉(130/0.4)氯化钠']

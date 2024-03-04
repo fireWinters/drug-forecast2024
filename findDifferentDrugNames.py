@@ -2,7 +2,7 @@
 Author: Diana tang 1987567948@qq.com
 Date: 2024-03-03 20:39:06
 LastEditors: Diana tang 1987567948@qq.com
-LastEditTime: 2024-03-04 08:35:55
+LastEditTime: 2024-03-04 14:57:23
 FilePath: \drug-forecast2024\findDifferentDrugNames.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -36,7 +36,7 @@ print(len(drug_names),'药品名称文件读取完成')
 different_names = [name for name in drug_names if name not in extracted_names]
 print(different_names,'不同的药品分类代码提取完成')
 different_names_df = pd.DataFrame({'药品分类代码': different_names})
-different_names_df.to_csv('./不同的药品分类代码20240303.csv', index=False)
+different_names_df.to_csv('./不同的药品分类代码20240304.csv', index=False)
 
 
 
