@@ -5,5 +5,8 @@ node_modules
 *.xls
 *.csv
 img20240301/*
+XGBoostPictures/*
+XGBoostImg/*
+LightGBMImg/*
 
 ```
