@@ -271,8 +271,8 @@ def model_train_and_evaluation(data, pbounds, model_types):
     idx = list(cate_lst).index('羟乙基淀粉(130/0.4)氯化钠')
 
     # 将列表cate_lst分成两个列表
-    cate_lst_before = cate_lst[:70]
-    cate_lst_after = cate_lst[70+1:]
+    cate_lst_before = cate_lst[:160]
+    cate_lst_after = cate_lst[160+1:]
 
     print("羟乙基淀粉(130/0.4)氯化钠之前的列表：", cate_lst_before)
     print("羟乙基淀粉(130/0.4)氯化钠之后的列表：", cate_lst_after)
