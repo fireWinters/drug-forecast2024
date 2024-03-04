@@ -264,12 +264,22 @@ def evaluate_models(dataset, pdq):
     print(' - Best ARIMA%s MSE=%.3f' % (best_cfg, best_score))
 # 对每个药品分类代码的药品做模型训练和评估
 def model_train_and_evaluation(data, pbounds, model_types):
-    # 分类代码列表
+    # 分类代码列表羟乙CC基淀粉(130/0.4)氯化钠
     cate_lst = data['药品分类代码'].unique()
-    # 导出data中的药品分类代码和药品名称列，用scv文件保存
-    data[['药品分类代码', '药品名称']].to_csv('./all_category_new.csv', index=False)
+    # 将列表cate_lst分成2个列表，分开2列的值是药品分类代码在羟乙基淀粉(130/0.4)氯化钠之前的为一组，之后的为一组
+    # 找到"羟乙基淀粉(130/0.4)氯化钠"在列表中的索引
+    idx = list(cate_lst).index('羟乙基淀粉(130/0.4)氯化钠')
 
-    for cate in cate_lst:
+    # 将列表cate_lst分成两个列表
+    cate_lst_before = cate_lst[:70]
+    cate_lst_after = cate_lst[70+1:]
+
+    print("羟乙基淀粉(130/0.4)氯化钠之前的列表：", cate_lst_before)
+    print("羟乙基淀粉(130/0.4)氯化钠之后的列表：", cate_lst_after)
+    # 导出data中的药品分类代码和药品名称列，用scv文件保存
+    # data[['药品分类代码', '药品名称']].to_csv('./all_category_new.csv', index=False)
+
+    for cate in cate_lst_after:
         # 筛选出指定分类代码的数据
         cate_data = data[data['药品分类代码'] == cate]
         # 如果数据量小于100，跳过这个药品
@@ -291,12 +301,13 @@ def model_train_and_evaluation(data, pbounds, model_types):
             # oot_index = cate_data[cate_data['药品分类代码'] == cate].index
             # 根据OOT索引筛选出对应的特征和目标数据
             oot_x, oot_y = X[X.index.isin(oot_index)], y[oot_index]
-            drug_name = data.loc[oot_index, '药品名称'].values[0]
-            drug_code = data.loc[oot_index, '药品分类代码'].values[0]
             # 如果OOT没有数据，则代码不再继续执行
             if len(oot_x) == 0:
                 print('OOT没有数据',oot_x)
             else:
+                drug_name = data.loc[oot_index, '药品名称'].values[0]
+                drug_code = data.loc[oot_index, '药品分类代码'].values[0]
+
             # 将数据分割为训练集和测试集，测试集大小为20%，随机种子为100以确保结果可重复
                 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=100)
 
