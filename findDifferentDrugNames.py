@@ -2,7 +2,7 @@
 Author: Diana tang 1987567948@qq.com
 Date: 2024-03-03 20:39:06
 LastEditors: Diana tang 1987567948@qq.com
-LastEditTime: 2024-03-03 21:01:06
+LastEditTime: 2024-03-04 08:35:55
 FilePath: \drug-forecast2024\findDifferentDrugNames.py
 Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
 '''
@@ -22,18 +22,21 @@ for file_name in file_names:
     extracted_name = file_name[start_index:end_index]
     extracted_names.append(extracted_name)
 
-print(extracted_names,'文件名提取完成')
+# print(extracted_names,'文件名提取完成')
+print(len(extracted_names),'文件名提取完成')    
 # 读取药品名称文件
 drug_names_df = pd.read_csv('./filtered_data2.csv')
 drug_names = drug_names_df['药品分类代码'].tolist()
-print(drug_names,'药品名称文件读取完成')
+# print(drug_names,'药品名称文件读取完成')
+# 输出drug_names的个数
+print(len(drug_names),'药品名称文件读取完成')
 
 # 对比文件中的名称，将extracted_names里没有的药品分类代码保存为新CSV文件
 
 different_names = [name for name in drug_names if name not in extracted_names]
 print(different_names,'不同的药品分类代码提取完成')
 different_names_df = pd.DataFrame({'药品分类代码': different_names})
-different_names_df.to_csv('./不同的药品分类代码.csv', index=False)
+different_names_df.to_csv('./不同的药品分类代码20240303.csv', index=False)
 
 
 
