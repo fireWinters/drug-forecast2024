@@ -281,7 +281,8 @@ if __name__ == '__main__':
     df = get_all_dataframes()
     # 将分类数据与原始数据框架合并，基于'药品名称'列进行左连接
     # 这样可以将'药品分类代码'添加到原始数据框架中
-    cate_data = pd.read_csv(os.path.join(current_directory, 'drug_with_category_2024.csv'))
+    # cate_data = pd.read_csv(os.path.join(current_directory, 'drug_with_category_2024.csv'))
+    cate_data = pd.read_csv(os.path.join(current_directory, 'drug_with_category_2024_03.csv'))
     df = pd.merge(df, cate_data[['药品名称', '药品分类代码']], how='left', on='药品名称')
     # 对数据进行处理，包括日期、季度和时序特征的处理
     # day_lst参数指定了要生成的时序特征的时间窗口长度
@@ -304,11 +305,11 @@ if __name__ == '__main__':
     cate_lst = data['药品分类代码'].unique()
     # 将列表cate_lst分成2个列表，分开2列的值是药品分类代码在羟乙基淀粉(130/0.4)氯化钠之前的为一组，之后的为一组
     # 找到"羟乙基淀粉(130/0.4)氯化钠"在列表中的索引
-    idx = list(cate_lst).index('羟乙基淀粉(130/0.4)氯化钠')
+    # idx = list(cate_lst).index('羟乙基淀粉(130/0.4)氯化钠')
 
-    # 将列表cate_lst分成两个列表
-    cate_lst_before = cate_lst[:idx]
-    cate_lst_after = cate_lst[idx+1:]
+    # # 将列表cate_lst分成两个列表
+    # cate_lst_before = cate_lst[:idx]
+    # cate_lst_after = cate_lst[idx+1:]
 
 
     # 获取XGBoostImg文件夹下所有图片的名字
@@ -324,8 +325,14 @@ if __name__ == '__main__':
     different_names = [name for name in cate_lst if name not in extracted_names]
     print(different_names,'不同的药品分类代码提取完成')
 
-    print("羟乙基淀粉(130/0.4)氯化钠之前的列表：", cate_lst_before)
-    print("羟乙基淀粉(130/0.4)氯化钠之后的列表：", cate_lst_after)
+    ac=pd.read_csv('./不同的药品分类代码20240304.csv')
+    no_data_names = ac['药品分类代码'].tolist()
+    no_data_names = [name for name in different_names if name not in no_data_names]
+
+
+
+    print("没数据的没模型的名称no_data_names", no_data_names)
+    # print("全部没模型的名称", different_names)
     data = data[data['药品分类代码'] == '羟乙基淀粉(130/0.4)氯化钠']
 # 选择特征列和目标列
 # 特征包括月份、季度和不同时间窗口（1天、3天、7天、14天、30天、60天、90天）的销售数据统计（总和、平均值、最大值、最小值）
