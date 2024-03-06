@@ -1,16 +1,24 @@
 '''
 Author: callus
 Date: 2024-03-01 21:16:16
-LastEditors: callus
+LastEditors: Diana tang 1987567948@qq.com
 Description: some description
 FilePath: /drug-forecast2024/deleteDrugCodeFirstletter.py
 '''
 import pandas as pd
 # 文件名称
-file_name = 'B_with_category_202402.xlsx'
-# 尝试使用不同的编码读取excel文件
+# file_name = 'B_with_category_202402.xlsx'
+file_name='B_with_category_202306_202403.csv'
+# 读取csv文件
+# df=pd.read_csv(file_name,encoding='utf-8')
+# 尝试使用不同的编码读取csv文件
+try:
+    df = pd.read_csv(file_name, encoding='utf-8')
+except:
+    df = pd.read_csv(file_name, encoding='gbk')
+    
 # try:
-df = pd.read_excel(file_name)
+# df = pd.read_excel(file_name)
 # except:
     # df = pd.read_excel(file_name, encoding='gbk')
 # 打印数据的前5行
@@ -29,4 +37,5 @@ def remove_x_if_starts_with(value):
 
 df['药品分类代码'] = df['药品分类代码'].apply(remove_x_if_starts_with)
 # 保存处理后的数据到新的CSV文件
-df.to_csv('./drug_with_category_2024.csv', index=False)
+# df.to_csv('./drug_with_category_2024.csv', index=False)
+df.to_csv('./drug_with_category_2024_03.csv',index=False)
