@@ -264,11 +264,9 @@ def evaluate_models(dataset, pdq):
             best_score, best_cfg = mse, i
 
     print(' - Best ARIMA%s MSE=%.3f' % (best_cfg, best_score))
-# 对每个药品分类代码的药品做模型训练和评估
-def model_train_and_evaluation(data, pbounds, model_types):
-    # 分类代码列表羟乙CC基淀粉(130/0.4)氯化钠
-    cate_lst = data['药品分类代码'].unique()
 
+# 筛选出还没有模型的药品分类代码
+def get_no_model_drug_code(cate_lst):
     # 获取XGBoostImg文件夹下所有图片的名字
     folder_path = 'XGBoostImg'
     file_names = [file_name for file_name in os.listdir(folder_path) if file_name.endswith('.png')]
@@ -280,11 +278,27 @@ def model_train_and_evaluation(data, pbounds, model_types):
         extracted_names.append(extracted_name)
     # 对比文件中的名称，将extracted_names里没有的药品分类代码保存为新CSV文件
     different_names = [name for name in cate_lst if name not in extracted_names]
-    # 剔除羟乙基淀粉(130/0.4)氯化钠这个药品从different_names中
-    different_names = [name for name in different_names if name != '羟乙基淀粉(130/0.4)氯化钠']
+    return different_names
+# 排除不同的药品分类代码20240304.csv文件里有的药品分类代码
+def get_no_data_drug_code(cate_lst):
+    ac=pd.read_csv('./不同的药品分类代码20240304.csv')
+    no_data_names = ac['药品分类代码'].tolist()
+    no_data_names = [name for name in cate_lst if name not in no_data_names]
+    return no_data_names
 
-    
-    cate_lst_after=different_names
+
+# 对每个药品分类代码的药品做模型训练和评估
+def model_train_and_evaluation(data, pbounds, model_types):
+    # 分类代码列表羟乙CC基淀粉(130/0.4)氯化钠
+    cate_lst = data['药品分类代码'].unique()
+    different_names=get_no_model_drug_code(cate_lst)
+    no_data_list=get_no_data_drug_code(different_names)
+    # 剔除羟乙基淀粉(130/0.4)氯化钠这个药品从different_names中
+    # different_names = [name for name in different_names if name != '羟乙基淀粉(130/0.4)氯化钠']
+    # cate_lst_after=different_names
+    no_data_list=[name for name in no_data_list if name != '羟乙基淀粉(130/0.4)氯化钠']
+    cate_lst_after=no_data_list
+   
     
     # 将列表cate_lst分成2个列表，分开2列的值是药品分类代码在羟乙基淀粉(130/0.4)氯化钠之前的为一组，之后的为一组
     # 找到"羟乙基淀粉(130/0.4)氯化钠"在列表中的索引
@@ -315,7 +329,7 @@ def model_train_and_evaluation(data, pbounds, model_types):
                 'de_sum_90', 'de_mean_90', 'de_max_90', 'de_min_90', ]], cate_data['y']
             # 定义时间外样本（OOT）的索引，这些样本用于模型的最终评估
             # 这里选择了日期在今天之后，药品代码为cate的样本作为OOT样本
-            today = datetime.now().date()
+            # today = datetime.now().date()
             pre_today='2023-05-01'
             oot_index = cate_data[(cate_data['日期'] > pre_today)&(cate_data['药品分类代码'] == cate)].index
             # oot_index = cate_data[cate_data['药品分类代码'] == cate].index
@@ -372,7 +386,9 @@ if __name__ == '__main__':
     df = get_all_dataframes()
     # 将分类数据与原始数据框架合并，基于'药品名称'列进行左连接
     # 这样可以将'药品分类代码'添加到原始数据框架中
-    cate_data = pd.read_csv(os.path.join(current_directory, 'drug_with_category_2024.csv'))
+    # 这是2024年2.28整理的数据drug_with_category_2024.csv
+    # cate_data = pd.read_csv(os.path.join(current_directory, 'drug_with_category_2024.csv'))
+    cate_data = pd.read_csv(os.path.join(current_directory, 'drug_with_category_2024_03.csv'))
     df = pd.merge(df, cate_data[['药品名称', '药品分类代码']], how='left', on='药品名称')
     # 对数据进行处理，包括日期、季度和时序特征的处理
     # day_lst参数指定了要生成的时序特征的时间窗口长度
