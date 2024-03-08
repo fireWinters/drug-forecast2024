@@ -225,7 +225,7 @@ def plot_prediction(date, y_true, y_pred, model_type,drug_code,drug_name,save_na
         plt.savefig(f'./{save_name}.png')
     else:
         plt.savefig(f'./{model_type}_{drug_code}.png')
-    plt.show()
+    # plt.show()
 
 # 定义一个函数，用于评估ARIMA模型
 def evaluate_arima_model(X, arima_order):
@@ -247,6 +247,13 @@ def evaluate_models(dataset, pdq):
             best_score, best_cfg = mse, i
 
     print(' - Best ARIMA%s MSE=%.3f' % (best_cfg, best_score))
+
+
+# 保存训练好的模型
+def save_model(model_trained, model_type, drug_code):
+        model = model_trained['model']
+        model_name = f'{model_type}_{drug_code}.model'
+        # model.save_model(model_name)
 # 对每个药品分类代码的药品做模型训练和评估
 def model_train_and_evaluation(data, pbounds, model_types):
     # 分类代码列表
@@ -280,32 +287,34 @@ def model_train_and_evaluation(data, pbounds, model_types):
             # 将数据分割为训练集和测试集，测试集大小为20%，随机种子为100以确保结果可重复
                 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=100)
 
-            # drug_code=cate_data['药品分类代码'].iloc[0]
-            drug_name = cate_data.loc[oot_index, '药品名称'].values[0]
-            drug_code = cate_data.loc[oot_index, '药品分类代码'].values[0]
-            # 初始化一个列表来存储训练好的模型
-            # training models
-            model_traineds = []
-            # 分别使用XGBoost和LightGBM算法训练模型
-            
-            # 对每个模型进行训练
-            for model_type in model_types:
-                # 训练模型，并返回训练好的模型及其相关信息
-                model_trained = model_train(X_train, X_test, y_train, y_test, pbounds, model_type)
-                # 将训练好的模型添加到列表中
-                model_traineds.append(model_trained)
-            # 对每个模型进行评估
-            # evaluation models
-            for model_trained in model_traineds:
-                # 获取模型的相关信息
-                model = model_trained['model']
-                # 得到模型的类型
-                model_type = model_trained['model_type']
-                # 使用训练好的模型对OOT样本进行预测
-                oot_pred = model.predict(oot_x)
-                # 绘制真实值和预测值的折线图
-                date = data.loc[oot_index, '日期']
-                plot_prediction(date, oot_y, oot_pred, model_type,drug_code,drug_name, save_name=None)
+                # drug_code=cate_data['药品分类代码'].iloc[0]
+                drug_name = cate_data.loc[oot_index, '药品名称'].values[0]
+                drug_code = cate_data.loc[oot_index, '药品分类代码'].values[0]
+                # 初始化一个列表来存储训练好的模型
+                # training models
+                model_traineds = []
+                # 分别使用XGBoost和LightGBM算法训练模型
+                
+                # 对每个模型进行训练
+                for model_type in model_types:
+                    # 训练模型，并返回训练好的模型及其相关信息
+                    model_trained = model_train(X_train, X_test, y_train, y_test, pbounds, model_type)
+                    # 将训练好的模型添加到列表中
+                    model_traineds.append(model_trained)
+                    # 将训练好的模型保存到本地
+                    save_model(model_trained, model_type, drug_code)
+                # 对每个模型进行评估
+                # evaluation models
+                for model_trained in model_traineds:
+                    # 获取模型的相关信息
+                    model = model_trained['model']
+                    # 得到模型的类型
+                    model_type = model_trained['model_type']
+                    # 使用训练好的模型对OOT样本进行预测
+                    oot_pred = model.predict(oot_x)
+                    # 绘制真实值和预测值的折线图
+                    date = data.loc[oot_index, '日期']
+                    plot_prediction(date, oot_y, oot_pred, model_type,drug_code,drug_name, save_name=None)
 
 
 
