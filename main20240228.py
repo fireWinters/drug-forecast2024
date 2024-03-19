@@ -281,8 +281,8 @@ if __name__ == '__main__':
     df = get_all_dataframes()
     # 将分类数据与原始数据框架合并，基于'药品名称'列进行左连接
     # 这样可以将'药品分类代码'添加到原始数据框架中
-    # cate_data = pd.read_csv(os.path.join(current_directory, 'drug_with_category_2024.csv'))
-    cate_data = pd.read_csv(os.path.join(current_directory, 'drug_with_category_2024_03.csv'))
+    cate_data = pd.read_csv(os.path.join(current_directory, 'drug_with_category_2024.csv'))
+    # cate_data = pd.read_csv(os.path.join(current_directory, 'drug_with_category_2024_03.csv'))
     df = pd.merge(df, cate_data[['药品名称', '药品分类代码']], how='left', on='药品名称')
     # 对数据进行处理，包括日期、季度和时序特征的处理
     # day_lst参数指定了要生成的时序特征的时间窗口长度
@@ -290,7 +290,8 @@ if __name__ == '__main__':
     # 对处理后的数据进行清洗，可能包括去除缺失值、异常值或转换数据类型等操作
     data = data_cleaning(data)
     # 数据输出为csv格式
-    data.to_csv('./category_data_all_S_noNan.csv', index=False)
+    # data.to_csv('./category_data_all_S_noNan.csv', index=False)
+    data.to_csv('./category_data_all_S_noNan0228.csv', index=False)
     # print(data,'清理后的数据')
     # 对数据进行标签处理，这里的标签可能指的是预测目标
     # 使用未来7天的数据作为标签
@@ -332,7 +333,7 @@ if __name__ == '__main__':
 
 
     print("没数据的没模型的名称no_data_names", no_data_names)
-    # print("全部没模型的名称", different_names)
+    print("全部没模型的名称", different_names)
     data = data[data['药品分类代码'] == '羟乙基淀粉(130/0.4)氯化钠']
 # 选择特征列和目标列
 # 特征包括月份、季度和不同时间窗口（1天、3天、7天、14天、30天、60天、90天）的销售数据统计（总和、平均值、最大值、最小值）
